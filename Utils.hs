@@ -9,6 +9,11 @@ split _ [] = []
 split separator input = [word] ++ split separator (drop 1 rest) where
   (word, rest) = head (parse (many (notChar separator)) input)
 
+splitOnce :: Char -> String -> (String, String)
+splitOnce _ [] = ([], [])
+splitOnce separator input = (word, drop 1 rest) where
+	(word, rest) = head (parse (many (notChar separator)) input)
+
 notChar :: Char -> Parser Char
 notChar x = sat(/= x)
 

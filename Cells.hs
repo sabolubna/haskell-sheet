@@ -5,7 +5,12 @@ import Parser
 import Utils
 import Data.Char
 
-data CellCoords = EmptyCoords | Column (Int) | Row (Int) | Cell (Int, Int) deriving Show
+data CellCoords = EmptyCoords | Column (Int) | Row (Int) | Cell (Int, Int) deriving (Show, Eq)
+data RangeCoords = Range (CellCoords, CellCoords) deriving (Show, Eq)
+
+data Function = Sum | Product | Mean deriving (Show, Eq)
+
+data CellContent = EmptyCell | NumCell (Double) | TextCell (String) | FunctionCell (Function, [RangeCoords]) deriving (Show, Eq)
 
 printCell :: CellCoords -> IO ()
 printCell EmptyCoords = putStrLn "empty"
@@ -41,3 +46,19 @@ getCellRange input = (case length splitCells of
 	2 -> (getCellCoords (head splitCells), getCellCoords (last splitCells))
 	_ -> (EmptyCoords, EmptyCoords)) where
 		splitCells = split ':' input
+
+getCellContent :: String -> CellContent
+getCellContent "" = EmptyCell
+getCellContent content
+  | (head content) ==  '"' && (last content) == '"' = (TextCell (drop 1 (init content)))
+  | otherwise = EmptyCell
+
+
+matrixReplaceAt :: [[a]] -> (CellCoords) -> a -> [[a]]
+matrixReplaceAt (col:cols) (Cell (0, rowNum)) elem = ((replaceAt col rowNum elem):cols)
+matrixReplaceAt (col:cols) (Cell (colNum, rowNum)) elem = (col:(matrixReplaceAt cols (Cell (colNum-1,rowNum)) elem))
+matrixReplaceAt matrix _ _ = matrix
+
+replaceAt :: [a] -> Int -> a -> [a]
+replaceAt (x:xs) 0 elem = (elem:xs)
+replaceAt (x:xs) n elem = (x:(replaceAt xs (n-1) elem))

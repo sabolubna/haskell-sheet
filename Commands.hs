@@ -5,29 +5,52 @@ import Help
 import Cells
 import Utils
 
-tryExecuteCommand :: String -> IO ()
-tryExecuteCommand command = (case head splitCommand of
-		"show" -> display (tail splitCommand)
-		"help" -> printHelpMsg (tail splitCommand)
-		_ -> putStrLn ("Command: " ++ command ++ " is incorrect.")) where 
-				splitCommand = split ' ' command
+tryExecuteCommand :: [[CellContent]] -> String -> IO [[CellContent]]
+tryExecuteCommand sheet fullCommand = newSheet where
+	newSheet = (case command of
+		"show" -> do
+			display sheet args
+			return sheet
+		"help" -> do
+			printHelpMsg [args]
+			return sheet
+		"set" -> setValue sheet args
+		_ -> do
+			putStrLn ("There is no " ++ command ++ " command.")
+			return sheet)
+	(command, args) = splitOnce ' ' fullCommand
 
 
-display :: [String] -> IO ()
-display [] = printSheet (EmptyCoords, EmptyCoords)
-display [coords] = printSheet (getCellRange coords)
-display _ = putStrLn "Incorrect show command. Type help show for correct examples."
+display :: [[CellContent]] -> String -> IO ()
+display sheet [] = printSheet sheet (EmptyCoords, EmptyCoords)
+display sheet coords = printSheet sheet (getCellRange coords)
 
 
-printSheet :: (CellCoords, CellCoords) -> IO ()
-printSheet (EmptyCoords, EmptyCoords) = putStrLn "Showing full sheet"
-printSheet (Cell (x1, y1), Cell (x2, y2)) = if x1 > x2 || y1 > y2 then
+printSheet :: [[CellContent]] -> (CellCoords, CellCoords) -> IO ()
+printSheet _ (EmptyCoords, EmptyCoords) = putStrLn "Showing full sheet"
+printSheet sheet (Cell (x1, y1), Cell (x2, y2)) = if x1 > x2 || y1 > y2 then
  	putStrLn "Incorrect show arguments."
-	else putStrLn ("Showing " ++ show x1 ++ show y1 ++ ":" ++ show x2 ++ show y2)
-printSheet (Column col1, Column col2) = if col1 > col2
+	else if x1 == x2 && y1 == y2 then putStrLn(show ((sheet !! x1) !! y1)) else putStrLn("Showing range")
+printSheet _ (Column col1, Column col2) = if col1 > col2
 	then putStrLn "Incorrect show arguments."
 	else putStrLn ("Showing columns" ++ show col1 ++ ":" ++ show col2)
-printSheet (Row row1, Row row2) = if row1 > row2
+printSheet _ (Row row1, Row row2) = if row1 > row2
 	then putStrLn "Incorrect show arguments."
 	else putStrLn ("Showing columns" ++ show row1 ++ ":" ++ show row1)
-printSheet _ = putStrLn "Incorrect show arguments."
+printSheet _ _ = putStrLn "Incorrect show arguments."
+
+
+setValue :: [[CellContent]] -> String -> IO [[CellContent]]
+setValue sheet args = do
+	putStrLn message
+	return newSheet where
+		(coords, value) = splitOnce ' ' args
+		cellCoords = getCellCoords coords
+		cellContent = getCellContent value
+		notOk = cellCoords == EmptyCoords || cellContent == EmptyCell
+		newSheet = if notOk
+			then sheet
+			else matrixReplaceAt sheet cellCoords cellContent
+		message = if notOk 
+			then "Incorrect set command."
+			else "OK."

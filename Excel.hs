@@ -5,21 +5,24 @@ import Commands
 import System.IO
 import Cells
 
-askForCommand :: String -> IO ()
-askForCommand [] = do
+askForCommand :: [[CellContent]] -> String -> IO ()
+askForCommand sheet [] = do
 	putStrLn ""
 	putStrLn "Type a command: (\"help\" for instructions)"
 	putStr ">>>>> "
 	hFlush stdout
 	command <- getLine
 	putStrLn ""
-	askForCommand command
+	askForCommand sheet command
 
-askForCommand "quit" = putStrLn "Hope your experience was EXCELlent, see you next time!"
+askForCommand _ "quit" =
+	putStrLn "Hope your experience was EXCELlent, see you next time!"
 
-askForCommand command = do
-	tryExecuteCommand command
-	askForCommand []
+askForCommand sheet command = do
+		newSheet <- tryExecuteCommand sheet command
+		askForCommand newSheet []
 
 
-main = askForCommand []
+main = do
+	let sheet = [[EmptyCell | y <- [1..10]] | x <- [1..10]]
+	askForCommand sheet []
