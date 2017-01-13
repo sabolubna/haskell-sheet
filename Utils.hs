@@ -33,3 +33,12 @@ string2int xs = digitToInt(last(xs)) + string2int(init xs) * 10
 
 allTrue :: [Bool] -> Bool
 allTrue xs = foldr (&&) True xs
+
+replaceAt :: [a] -> Int -> a -> [a]
+replaceAt (x:xs) 0 elem = (elem:xs)
+replaceAt (x:xs) n elem = (x:(replaceAt xs (n-1) elem))
+
+insertAt :: [a] -> Int -> a -> [a]
+insertAt [] num elem = [elem | x <- [0..num]]
+insertAt xs 0 elem = (elem:xs)
+insertAt (x:xs) n elem = (x:(insertAt xs (n-1) elem))

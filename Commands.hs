@@ -15,6 +15,7 @@ tryExecuteCommand sheet fullCommand = newSheet where
 			printHelpMsg [args]
 			return sheet
 		"set" -> setValue sheet args
+		"add" -> addCells sheet args
 		_ -> do
 			putStrLn ("There is no " ++ command ++ " command.")
 			return sheet)
@@ -47,10 +48,35 @@ setValue sheet args = do
 		(coords, value) = splitOnce ' ' args
 		cellCoords = getCellCoords coords
 		cellContent = getCellContent value
-		notOk = cellCoords == EmptyCoords || cellContent == EmptyCell
-		newSheet = if notOk
-			then sheet
-			else matrixReplaceAt sheet cellCoords cellContent
-		message = if notOk 
-			then "Incorrect set command."
-			else "OK."
+		ok = cellCoords /= EmptyCoords && cellContent /= EmptyCell
+		newSheet = if ok
+			then matrixReplaceAt sheet cellCoords cellContent
+			else sheet
+		message = if ok 
+			then "OK."
+			else "Incorrect set command."
+
+addCells :: [[CellContent]] -> String -> IO [[CellContent]]
+addCells sheet input = do
+	putStrLn message
+	return newSheet where
+		coords = getCellCoords input
+		ok = case coords of
+			(Column col) -> True
+			(Row row) -> True
+			_ -> False
+		newSheet = if ok
+			then insertEmpty sheet coords
+			else sheet
+		message = if ok
+			then "Inserted correctly."
+			else "Incorrect add command."
+
+insertEmpty :: [[CellContent]] -> CellCoords -> [[CellContent]]
+insertEmpty [] (Column col) = [[EmptyCell | x <- [0..9]] | y <- [0..col]]
+insertEmpty [] (Row row) = [[EmptyCell | x <- [0..row]] | y <- [0..9]]
+insertEmpty sheet (Column col) = (insertAt sheet col column) where
+	rows = length (head sheet)
+	column = [EmptyCell | x <- [1..rows]]	
+insertEmpty sheet (Row row) =
+	[insertAt (sheet !! i) row EmptyCell | i <- [0..((length sheet) - 1)]]

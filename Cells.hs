@@ -58,7 +58,3 @@ matrixReplaceAt :: [[a]] -> (CellCoords) -> a -> [[a]]
 matrixReplaceAt (col:cols) (Cell (0, rowNum)) elem = ((replaceAt col rowNum elem):cols)
 matrixReplaceAt (col:cols) (Cell (colNum, rowNum)) elem = (col:(matrixReplaceAt cols (Cell (colNum-1,rowNum)) elem))
 matrixReplaceAt matrix _ _ = matrix
-
-replaceAt :: [a] -> Int -> a -> [a]
-replaceAt (x:xs) 0 elem = (elem:xs)
-replaceAt (x:xs) n elem = (x:(replaceAt xs (n-1) elem))
