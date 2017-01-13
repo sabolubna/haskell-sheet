@@ -42,3 +42,7 @@ insertAt :: [a] -> Int -> a -> [a]
 insertAt [] num elem = [elem | x <- [0..num]]
 insertAt xs 0 elem = (elem:xs)
 insertAt (x:xs) n elem = (x:(insertAt xs (n-1) elem))
+
+removeAt :: [a] -> Int -> [a]
+removeAt (x:xs) 0 = xs
+removeAt (x:xs) n = (x:(removeAt xs (n-1)))

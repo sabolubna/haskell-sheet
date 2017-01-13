@@ -5,7 +5,7 @@ printHelpMsg :: [String] -> IO ()
 printHelpMsg [""] = do
 	putStrLn "Available commands:"
 	putStrLn ""
-	printHelpMsg ["show", "set", "add", "help", "quit"]
+	printHelpMsg ["show", "set", "add", "delete", "help", "quit"]
 
 printHelpMsg [command] = case command of
 	"show" -> do
@@ -19,6 +19,8 @@ printHelpMsg [command] = case command of
 		putStrLn "add X - adds empty column or row, e.g. add F, add 7"
 		putStrLn "  if X is bigger that sheet's current size, multiple"
 		putStrLn "  columns/rows are added"
+	"delete" -> do
+		putStrLn "delete X - deletes chosen column or row, e.g. delete F, delete 7"
 	"help" -> do
 		putStrLn "help XXX - displays help message for chosen command, e.g. help show"
 	"quit" -> do 

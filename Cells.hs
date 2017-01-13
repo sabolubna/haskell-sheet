@@ -53,8 +53,16 @@ getCellContent content
   | (head content) ==  '"' && (last content) == '"' = (TextCell (drop 1 (init content)))
   | otherwise = EmptyCell
 
-
 matrixReplaceAt :: [[a]] -> (CellCoords) -> a -> [[a]]
 matrixReplaceAt (col:cols) (Cell (0, rowNum)) elem = ((replaceAt col rowNum elem):cols)
 matrixReplaceAt (col:cols) (Cell (colNum, rowNum)) elem = (col:(matrixReplaceAt cols (Cell (colNum-1,rowNum)) elem))
 matrixReplaceAt matrix _ _ = matrix
+
+verifyCell :: CellCoords -> Bool
+verifyCell (Cell (_, _)) = True
+verifyCell _ = False
+
+verifyRowOrColumn :: CellCoords -> Bool
+verifyRowOrColumn (Column _) = True
+verifyRowOrColumn (Row _) = True
+verifyRowOrColumn _ = False

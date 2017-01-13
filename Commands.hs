@@ -16,6 +16,7 @@ tryExecuteCommand sheet fullCommand = newSheet where
 			return sheet
 		"set" -> setValue sheet args
 		"add" -> addCells sheet args
+		"delete" -> deleteCells sheet args
 		_ -> do
 			putStrLn ("There is no " ++ command ++ " command.")
 			return sheet)
@@ -48,7 +49,7 @@ setValue sheet args = do
 		(coords, value) = splitOnce ' ' args
 		cellCoords = getCellCoords coords
 		cellContent = getCellContent value
-		ok = cellCoords /= EmptyCoords && cellContent /= EmptyCell
+		ok = verifyCell cellCoords && cellContent /= EmptyCell
 		newSheet = if ok
 			then matrixReplaceAt sheet cellCoords cellContent
 			else sheet
@@ -56,15 +57,13 @@ setValue sheet args = do
 			then "OK."
 			else "Incorrect set command."
 
+
 addCells :: [[CellContent]] -> String -> IO [[CellContent]]
 addCells sheet input = do
 	putStrLn message
 	return newSheet where
 		coords = getCellCoords input
-		ok = case coords of
-			(Column col) -> True
-			(Row row) -> True
-			_ -> False
+		ok = verifyRowOrColumn coords
 		newSheet = if ok
 			then insertEmpty sheet coords
 			else sheet
@@ -80,3 +79,35 @@ insertEmpty sheet (Column col) = (insertAt sheet col column) where
 	column = [EmptyCell | x <- [1..rows]]	
 insertEmpty sheet (Row row) =
 	[insertAt (sheet !! i) row EmptyCell | i <- [0..((length sheet) - 1)]]
+
+
+deleteCells :: [[CellContent]] -> String -> IO [[CellContent]]
+deleteCells [] _ = do
+	putStrLn "The sheet is empty, nothing to remove."
+	return []
+deleteCells sheet input = (case coords of
+	(Column col) -> if col >= colCount 
+		then do
+			putStrLn "Column doesn't exist."
+			return sheet
+		else do
+			putStrLn "Column removed successfully."
+			return (removeCells sheet coords)
+	(Row row) -> if row >= rowCount
+		then do
+			putStrLn "Row doesn't exist."
+			return sheet
+		else do
+			putStrLn "Row removed successfully."
+			return (removeCells sheet coords)) where
+				coords = getCellCoords input
+				colCount = length sheet
+				rowCount = length (head sheet)
+
+removeCells :: [[CellContent]] -> CellCoords -> [[CellContent]]
+removeCells sheet (Column col) = removeAt sheet col
+removeCells sheet (Row row) = if head newSheet == []
+	then [] 
+	else newSheet where 
+		newSheet = [removeAt (sheet !! col) row | col <- [0..(colCount-1)]]
+		colCount = length sheet
