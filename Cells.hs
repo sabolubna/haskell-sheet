@@ -12,11 +12,8 @@ data Function = Sum | Product | Mean deriving (Show, Eq)
 
 data CellContent = EmptyCell | NumCell (Double) | TextCell (String) | FunctionCell (Function, [RangeCoords]) deriving (Show, Eq)
 
-printCell :: CellCoords -> IO ()
-printCell EmptyCoords = putStrLn "empty"
-printCell (Column x) = putStrLn ("col " ++ show x)
-printCell (Cell (x, y)) = putStrLn ("cell " ++ show x ++ " " ++ show y)
-
+-- Given a string, e.g. "F5" returns a corresponding CellCoords;
+-- can be coordinates of a cell or only a column/row
 getCellCoords :: String -> CellCoords
 getCellCoords coords | empty /= [] = EmptyCoords
                      | otherwise = getCell(column, row) where
@@ -25,11 +22,13 @@ getCellCoords coords | empty /= [] = EmptyCoords
 	column = if letters == [] then -1 else getColumnNumber letters
 	row = if digits == [] then -1 else (string2int digits - 1)
 
+-- Given coordinates of a cell/column/row, returns corresponding CellCoords
 getCell :: (Int, Int) -> CellCoords
 getCell (-1, row) = Row row
 getCell (col, -1) = Column col
 getCell (col, row) = Cell (col, row)
 
+-- Given a column name, returns corresponding number, e.g. "C" -> 2
 getColumnNumber :: String -> Int
 getColumnNumber letters = if legit then getColumn ords else -1 where
 	ords = [ord x - ord 'A' | x <- letters]
@@ -40,11 +39,14 @@ getColumnNumber letters = if legit then getColumn ords else -1 where
 	getColumn [x] = x
 	getColumn xs = ((getColumn (init xs)) + 1) * 26  + last xs
 
+-- Given CellCoords, return corresponding name, e.g. Column 2 -> "C"
 getCoordsString :: CellCoords -> String
 getCoordsString (Row row) = show (row + 1)
 getCoordsString (Column col) = [chr (ord 'A' + (mod col 26))]
 getCoordsString (Cell (col, row)) = getCoordsString (Column col) ++ getCoordsString (Row row)
 
+-- Given a cell range in a string, returns CellCoords pair;
+-- e.g. "A5:C7" -> (Cell (0,4), Cell (3, 6))
 getCellRange :: String -> (CellCoords, CellCoords)
 getCellRange input = (case length splitCells of
 	1 -> (getCellCoords (head splitCells), getCellCoords (head splitCells))
@@ -52,21 +54,26 @@ getCellRange input = (case length splitCells of
 	_ -> (EmptyCoords, EmptyCoords)) where
 		splitCells = split ':' input
 
+-- Given a string from user, parses it and returns CellContent
 getCellContent :: String -> CellContent
 getCellContent "" = EmptyCell
 getCellContent content
   | (head content) ==  '"' && (last content) == '"' = (TextCell (drop 1 (init content)))
   | otherwise = EmptyCell
 
+-- Given a list of lists, CellCoords and new element, puts it in the 
+-- corresponding "cell", and returns modified list of lists
 matrixReplaceAt :: [[a]] -> (CellCoords) -> a -> [[a]]
 matrixReplaceAt (col:cols) (Cell (0, rowNum)) elem = ((replaceAt col rowNum elem):cols)
 matrixReplaceAt (col:cols) (Cell (colNum, rowNum)) elem = (col:(matrixReplaceAt cols (Cell (colNum-1,rowNum)) elem))
 matrixReplaceAt matrix _ _ = matrix
 
+-- Checks whether given CellCoords is a Cell
 verifyCell :: CellCoords -> Bool
 verifyCell (Cell (_, _)) = True
 verifyCell _ = False
 
+-- Checks whether given CellCoords is a Row or Column
 verifyRowOrColumn :: CellCoords -> Bool
 verifyRowOrColumn (Column _) = True
 verifyRowOrColumn (Row _) = True
