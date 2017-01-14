@@ -22,26 +22,59 @@ tryExecuteCommand sheet fullCommand = newSheet where
 			return sheet)
 	(command, args) = splitOnce ' ' fullCommand
 
-
+-- show command
 tryDisplay :: [[CellContent]] -> String -> IO ()
 tryDisplay sheet [] = display sheet (EmptyCoords, EmptyCoords)
-tryDisplay sheet coords = display sheet (getCellRange coords)
-
+tryDisplay sheet input = (case coords of
+	(Cell (x1, y1), Cell (x2, y2)) -> if x1 > x2 || y1 > y2 || x2 >= colCount || y2 >= rowCount
+		then putStrLn "Incorrect show arguments."
+		else if x1 == x2 && y1 == y2 
+			then displayFullElem sheet (Cell (x1, y1))
+			else display sheet (Cell (x1, y1), Cell (x2, y2))
+	(Column col1, Column col2) -> if col1 > col2 || col2 >= colCount
+		then putStrLn "Incorrect show arguments."
+		else display sheet (Column col1, Column col2)		
+	(Row row1, Row row2) -> if row1 > row2 || row2 >= rowCount
+		then putStrLn "Incorrect show arguments."
+		else display sheet (Row row1, Row row2)) where 
+			coords = getCellRange input
+			colCount = length sheet
+			rowCount = if colCount > 0 then length (head sheet) else 0
 
 display :: [[CellContent]] -> (CellCoords, CellCoords) -> IO ()
-display _ (EmptyCoords, EmptyCoords) = putStrLn "Showing full sheet"
-display sheet (Cell (x1, y1), Cell (x2, y2)) = if x1 > x2 || y1 > y2 then
- 	putStrLn "Incorrect show arguments."
-	else if x1 == x2 && y1 == y2 then putStrLn(show ((sheet !! x1) !! y1)) else putStrLn("Showing range")
-display _ (Column col1, Column col2) = if col1 > col2
-	then putStrLn "Incorrect show arguments."
-	else putStrLn ("Showing columns" ++ show col1 ++ ":" ++ show col2)
-display _ (Row row1, Row row2) = if row1 > row2
-	then putStrLn "Incorrect show arguments."
-	else putStrLn ("Showing columns" ++ show row1 ++ ":" ++ show row1)
+display [] (_, _) = putStrLn "Sheet is empty."
+display sheet (EmptyCoords, EmptyCoords) =
+	display sheet (Cell (0, 0), Cell (colCount-1, rowCount-1)) where
+		colCount = length sheet
+		rowCount = length (head sheet)
+display sheet (Cell (x1, y1), Cell (x2, y2)) = if y1 == y2
+	then putStrLn (getRow sheet (Row y1) (Column x1) (Column x2))
+	else do
+		putStrLn (getRow sheet (Row y1) (Column x1) (Column x2))
+		display sheet (Cell (x1, y1+1), Cell (x2, y2))
+display sheet (Column col1, Column col2) = 
+	display sheet (Cell (col1, 0), Cell (col2, length (head sheet) - 1))
+display sheet (Row row1, Row row2) = 
+	display sheet (Cell (0, row1), Cell (length sheet - 1, row2))
 display _ _ = putStrLn "Incorrect show arguments."
 
+getRow :: [[CellContent]] -> CellCoords -> CellCoords -> CellCoords -> String
+getRow sheet (Row row) (Column x1) (Column x2) = rowString where
+	elems = [getElemPart 10 ((sheet !! col) !! row) ++ " | " | col <- [x1..x2]]
+	rowString = take 70 (foldr (++) "" elems)
 
+getElemPart :: Int -> CellContent -> String
+getElemPart n EmptyCell = foldr (++) "" [" " | x <- [1..n]]
+getElemPart n (TextCell text) = if length text <= n 
+	then text ++ (foldr (++) "" [" " | x <- [1..(n - length text)]])
+	else (take (n-3) text) ++ "..."
+
+displayFullElem :: [[CellContent]] -> CellCoords -> IO ()
+displayFullElem sheet (Cell (col, row)) = case ((sheet !! col) !! row) of
+	(TextCell text) -> putStrLn ("\"" ++ text ++ "\"")
+	EmptyCell -> putStrLn "This cell is empty."
+
+-- set command
 trySetValue :: [[CellContent]] -> String -> IO [[CellContent]]
 trySetValue sheet args = do
 	putStrLn message
@@ -57,7 +90,7 @@ trySetValue sheet args = do
 			then "OK."
 			else "Incorrect set command."
 
-
+-- add command
 tryAddCells :: [[CellContent]] -> String -> IO [[CellContent]]
 tryAddCells sheet input = do
 	putStrLn message
@@ -80,7 +113,7 @@ addCells sheet (Column col) = (insertAt sheet col column) where
 addCells sheet (Row row) =
 	[insertAt (sheet !! i) row EmptyCell | i <- [0..((length sheet) - 1)]]
 
-
+-- delete command
 tryDeleteCells :: [[CellContent]] -> String -> IO [[CellContent]]
 tryDeleteCells [] _ = do
 	putStrLn "The sheet is empty, nothing to remove."

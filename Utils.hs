@@ -1,4 +1,4 @@
--- miscelleanous functions
+-- miscellaneous functions for parsing and list modification
 module Utils where
 
 import Data.Char
