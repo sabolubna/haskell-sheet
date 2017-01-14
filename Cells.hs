@@ -38,7 +38,12 @@ getColumnNumber letters = if legit then getColumn ords else -1 where
 	getColumn :: [Int] -> Int
 	getColumn [] = 0
 	getColumn [x] = x
-	getColumn xs = (getColumn (init xs)) * 26 + last xs
+	getColumn xs = ((getColumn (init xs)) + 1) * 26  + last xs
+
+getCoordsString :: CellCoords -> String
+getCoordsString (Row row) = show (row + 1)
+getCoordsString (Column col) = [chr (ord 'A' + (mod col 26))]
+getCoordsString (Cell (col, row)) = getCoordsString (Column col) ++ getCoordsString (Row row)
 
 getCellRange :: String -> (CellCoords, CellCoords)
 getCellRange input = (case length splitCells of

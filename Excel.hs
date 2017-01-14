@@ -24,5 +24,5 @@ askForCommand sheet command = do
 
 
 main = do
-	let sheet = [[EmptyCell | y <- [1..10]] | x <- [1..10]]
+	let sheet = [[EmptyCell | y <- [1..5]] | x <- [1..5]]
 	askForCommand sheet []

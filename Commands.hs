@@ -5,6 +5,9 @@ import Help
 import Cells
 import Utils
 
+columnWidth = 10
+totalWidth = 70
+
 tryExecuteCommand :: [[CellContent]] -> String -> IO [[CellContent]]
 tryExecuteCommand sheet fullCommand = newSheet where
 	newSheet = (case command of
@@ -24,29 +27,35 @@ tryExecuteCommand sheet fullCommand = newSheet where
 
 -- show command
 tryDisplay :: [[CellContent]] -> String -> IO ()
-tryDisplay sheet [] = display sheet (EmptyCoords, EmptyCoords)
+tryDisplay sheet [] = do
+	putStrLn (getFirstRow ((Column 0), (Column (colCount-1))))
+	display sheet (Cell (0, 0), Cell (colCount-1, rowCount-1)) where
+		colCount = length sheet
+		rowCount = length (head sheet)
 tryDisplay sheet input = (case coords of
 	(Cell (x1, y1), Cell (x2, y2)) -> if x1 > x2 || y1 > y2 || x2 >= colCount || y2 >= rowCount
 		then putStrLn "Incorrect show arguments."
 		else if x1 == x2 && y1 == y2 
 			then displayFullElem sheet (Cell (x1, y1))
-			else display sheet (Cell (x1, y1), Cell (x2, y2))
+			else do
+				putStrLn (getFirstRow ((Column x1), (Column x2)))
+				display sheet (Cell (x1, y1), Cell (x2, y2))
 	(Column col1, Column col2) -> if col1 > col2 || col2 >= colCount
 		then putStrLn "Incorrect show arguments."
-		else display sheet (Column col1, Column col2)		
+		else do
+				putStrLn (getFirstRow ((Column col1), (Column col2)))
+				display sheet (Column col1, Column col2)		
 	(Row row1, Row row2) -> if row1 > row2 || row2 >= rowCount
 		then putStrLn "Incorrect show arguments."
-		else display sheet (Row row1, Row row2)) where 
+		else do
+				putStrLn (getFirstRow ((Column 0), (Column (colCount-1))))
+				display sheet (Row row1, Row row2)) where 
 			coords = getCellRange input
 			colCount = length sheet
 			rowCount = if colCount > 0 then length (head sheet) else 0
 
 display :: [[CellContent]] -> (CellCoords, CellCoords) -> IO ()
 display [] (_, _) = putStrLn "Sheet is empty."
-display sheet (EmptyCoords, EmptyCoords) =
-	display sheet (Cell (0, 0), Cell (colCount-1, rowCount-1)) where
-		colCount = length sheet
-		rowCount = length (head sheet)
 display sheet (Cell (x1, y1), Cell (x2, y2)) = if y1 == y2
 	then putStrLn (getRow sheet (Row y1) (Column x1) (Column x2))
 	else do
@@ -58,20 +67,30 @@ display sheet (Row row1, Row row2) =
 	display sheet (Cell (0, row1), Cell (length sheet - 1, row2))
 display _ _ = putStrLn "Incorrect show arguments."
 
+getFirstRow :: (CellCoords, CellCoords) -> String
+getFirstRow ((Column col1), (Column col2)) = rowString where
+	elems = [[getCoordsString (Column col)] ++ [" " | x <- [1..(columnWidth - length (getCoordsString (Column col)))]] ++ [" | "]| col <- [col1..col2]]
+	rowString = "  | " ++ (take totalWidth (foldr (++) "" (foldr (++) [""] elems)))
+
 getRow :: [[CellContent]] -> CellCoords -> CellCoords -> CellCoords -> String
 getRow sheet (Row row) (Column x1) (Column x2) = rowString where
-	elems = [getElemPart 10 ((sheet !! col) !! row) ++ " | " | col <- [x1..x2]]
-	rowString = take 70 (foldr (++) "" elems)
+	elems = [getElemPart columnWidth ((sheet !! col) !! row) ++ " | " | col <- [x1..x2]]
+	rowString = show (row+1) ++ " | " ++ (take totalWidth (foldr (++) "" elems))
 
 getElemPart :: Int -> CellContent -> String
 getElemPart n EmptyCell = foldr (++) "" [" " | x <- [1..n]]
 getElemPart n (TextCell text) = if length text <= n 
 	then text ++ (foldr (++) "" [" " | x <- [1..(n - length text)]])
 	else (take (n-3) text) ++ "..."
+getElemPart n (NumCell num) =  if length text <= n 
+	then text ++ (foldr (++) "" [" " | x <- [1..(n - length text)]])
+	else (take (n-3) text) ++ "..." where
+		text = (show num)
 
 displayFullElem :: [[CellContent]] -> CellCoords -> IO ()
 displayFullElem sheet (Cell (col, row)) = case ((sheet !! col) !! row) of
 	(TextCell text) -> putStrLn ("\"" ++ text ++ "\"")
+	(NumCell num) -> putStrLn (show num)
 	EmptyCell -> putStrLn "This cell is empty."
 
 -- set command
@@ -105,8 +124,8 @@ tryAddCells sheet input = do
 			else "Incorrect add command."
 
 addCells :: [[CellContent]] -> CellCoords -> [[CellContent]]
-addCells [] (Column col) = [[EmptyCell | x <- [0..9]] | y <- [0..col]]
-addCells [] (Row row) = [[EmptyCell | x <- [0..row]] | y <- [0..9]]
+addCells [] (Column col) = [[EmptyCell | x <- [0..5]] | y <- [0..col]]
+addCells [] (Row row) = [[EmptyCell | x <- [0..row]] | y <- [0..5]]
 addCells sheet (Column col) = (insertAt sheet col column) where
 	rows = length (head sheet)
 	column = [EmptyCell | x <- [1..rows]]	
