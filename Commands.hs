@@ -5,6 +5,7 @@ import Help
 import Cells
 import Utils
 import Data.Binary
+import Control.Exception
 
 columnWidth = 10
 totalWidth = 70
@@ -23,14 +24,8 @@ tryExecuteCommand sheet fullCommand = newSheet where
 		"clear" -> tryClearValue sheet args
 		"add" -> tryAddCells sheet args
 		"delete" -> tryDeleteCells sheet args
-		"save" -> do
-			encodeFile args sheet
-			putStrLn "File saved."
-			return sheet
-		"open" -> do
-			openedSheet <- decodeFile args :: IO [[CellContent]]
-			putStrLn "File opnened."
-			return openedSheet
+		"save" -> trySaveFile sheet args
+		"open" -> tryOpenFile sheet args
 		"new" -> do 
 			let reallyNewSheet = [[EmptyCell | y <- [1..5]] | x <- [1..5]]
 			return reallyNewSheet
@@ -48,6 +43,7 @@ tryDisplay sheet [] = do
 		colCount = length sheet
 		rowCount = length (head sheet)
 tryDisplay sheet input = (case coords of
+	(EmptyCoords, EmptyCoords) -> putStrLn "Incorrect show arguments."
 	(Cell (x1, y1), Cell (x2, y2)) -> if x1 > x2 || y1 > y2 || x2 >= colCount || y2 >= rowCount
 		then putStrLn "Incorrect show arguments."
 		else if x1 == x2 && y1 == y2 
@@ -243,6 +239,33 @@ deleteCells sheet (Row row) = if head newSheet == []
 	else newSheet where 
 		newSheet = [removeAt (sheet !! col) row | col <- [0..(colCount-1)]]
 		colCount = length sheet
-		
 
-						  
+trySaveFile :: [[CellContent]] -> String -> IO [[CellContent]]
+trySaveFile sheet args =  do
+				result <- try (saveFile sheet args) :: IO (Either SomeException ([[CellContent]]) )
+				case result of
+					Left ex  -> do 
+									putStrLn $ "Impossible to save file: " ++ show ex
+									return sheet
+					Right val -> return val
+
+saveFile :: [[CellContent]] -> String -> IO [[CellContent]]
+saveFile sheet args = do 
+						encodeFile args sheet
+						putStrLn "File saved."
+						return sheet
+
+tryOpenFile :: [[CellContent]] -> String -> IO [[CellContent]]
+tryOpenFile sheet args =  do
+				result <- try (openFile sheet args) :: IO (Either SomeException ([[CellContent]]) )
+				case result of
+					Left ex  -> do 
+									putStrLn $ "Impossible to open file: " ++ show ex
+									return sheet
+					Right val -> return val
+
+openFile :: [[CellContent]] -> String -> IO [[CellContent]]
+openFile sheet args = do 
+			openedSheet <- decodeFile args :: IO [[CellContent]]
+			putStrLn "File opnened."
+			return openedSheet

@@ -60,11 +60,13 @@ getCoordsString (Cell (col, row)) = getCoordsString (Column col) ++ getCoordsStr
 -- Given a cell range in a string, returns CellCoords pair;
 -- e.g. "A5:C7" -> (Cell (0,4), Cell (3, 6))
 getCellRange :: String -> (CellCoords, CellCoords)
-getCellRange input = (case length splitCells of
-	1 -> (getCellCoords (head splitCells), getCellCoords (head splitCells))
-	2 -> (getCellCoords (head splitCells), getCellCoords (last splitCells))
-	_ -> (EmptyCoords, EmptyCoords)) where
-		splitCells = split ':' input
+getCellRange input = if verifyCellRangeExpression input
+						then let splitCells = split ':' input in
+							(case length splitCells of
+									1 -> (getCellCoords (head splitCells), getCellCoords (head splitCells))
+									2 -> (getCellCoords (head splitCells), getCellCoords (last splitCells))
+									_ -> (EmptyCoords, EmptyCoords)) 
+						else (EmptyCoords, EmptyCoords) 
 
 -- Given a string from user, parses it and returns CellContent
 getCellContent :: String -> CellContent
@@ -97,15 +99,19 @@ verifyRowOrColumn _ = False
 
 -- Checks if a String is expression of sum.
 verifySumExpression :: String -> Bool
-verifySumExpression content = content =~ "^SUM\\([A-Z][0-9]+\\:[A-Z][0-9]+\\)$" :: Bool
+verifySumExpression content = content =~ "^SUM\\([A-Z][1-9][0-9]*\\:[A-Z][1-9][0-9]*\\)$" :: Bool
 
 -- Checks if a String is expression of mean.
 verifyMeanExpression :: String -> Bool
-verifyMeanExpression content = content =~ "^MEAN\\([A-Z][0-9]+\\:[A-Z][0-9]+\\)$" :: Bool
+verifyMeanExpression content = content =~ "^MEAN\\([A-Z][1-9][0-9]*\\:[A-Z][1-9][0-9]*\\)$" :: Bool
 
 -- Checks if a String is expression of sum.
 verifyProductExpression :: String -> Bool
-verifyProductExpression content = content =~ "^PRODUCT\\([A-Z][0-9]+\\:[A-Z][0-9]+\\)$" :: Bool
+verifyProductExpression content = content =~ "^PRODUCT\\([A-Z][1-9][0-9]*\\:[A-Z][1-9][0-9]*\\)$" :: Bool
+
+-- Chekcs if a String is expression of range.
+verifyCellRangeExpression :: String -> Bool 
+verifyCellRangeExpression input = input =~ "^[A-Z][1-9][0-9]*\\:[A-Z][1-9][0-9]*$" || input =~ "^[A-Z]$" || input =~ "^[1-9][0-9]*" || input =~ "^[A-Z]\\:[A-Z]$"
 
 -- Given a FunctionCell returns a corresponding string
 functionToString :: CellContent -> String
