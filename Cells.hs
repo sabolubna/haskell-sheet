@@ -116,6 +116,12 @@ verifyCellRangeExpression :: String -> Bool
 verifyCellRangeExpression input =  input =~ "^[A-Z]+[1-9][0-9]*\\:[A-Z]+[1-9][0-9]*$" || input =~ "^[A-Z]+$" || input =~ "^[1-9][0-9]*"  
 									   || input =~ "^[A-Z]+\\:[A-Z]+$" || input =~ "^[A-Z]+[1-9][0-9]*$"
 
+verifyColumnExpression :: String -> Bool 
+verifyColumnExpression  input = input =~  "^[A-Z]+$"
+
+verifyRowExpression :: String -> Bool 
+verifyRowExpression input = input =~  "^[1-9][0-9]*$"
+
 -- Given a FunctionCell returns a corresponding string
 functionToString :: CellContent -> String
 functionToString (FunctionCell (f, Range (coord1, coord2))) =

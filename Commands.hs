@@ -214,24 +214,30 @@ tryDeleteCells :: [[CellContent]] -> String -> IO [[CellContent]]
 tryDeleteCells [] _ = do
 	putStrLn "The sheet is empty, nothing to remove."
 	return []
-tryDeleteCells sheet input = (case coords of
-	(Column col) -> if col >= colCount 
-		then do
-			putStrLn "Column doesn't exist."
-			return sheet
-		else do
-			putStrLn "Column removed successfully."
-			return (deleteCells sheet coords)
-	(Row row) -> if row >= rowCount
-		then do
-			putStrLn "Row doesn't exist."
-			return sheet
-		else do
-			putStrLn "Row removed successfully."
-			return (deleteCells sheet coords)) where
+tryDeleteCells sheet input = 		
+	if verifyColumnExpression input || verifyRowExpression input then
+			(case coords of
+				(Column col) -> if col >= colCount 
+					then do
+						putStrLn "Column doesn't exist."
+						return sheet
+					else do
+						putStrLn "Column removed successfully."
+						return (deleteCells sheet coords)
+				(Row row) -> if row >= rowCount
+					then do
+						putStrLn "Row doesn't exist."
+						return sheet
+					else do
+						putStrLn "Row removed successfully."
+						return (deleteCells sheet coords)) 
+	else do
+		putStrLn "Incorrect input."
+		return sheet 
+			where
 				coords = getCellCoords input
 				colCount = length sheet
-				rowCount = length (head sheet)
+				rowCount = length (head sheet)  
 
 -- Deletes chosen rows/columns from the sheet;
 -- this command results in a change of the sheet size.
