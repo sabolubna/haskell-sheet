@@ -185,17 +185,24 @@ tryClearValue sheet args = do
 -- add command section
 -- Verifies arguments and executes add command
 tryAddCells :: [[CellContent]] -> String -> IO [[CellContent]]
-tryAddCells sheet input = do
-	putStrLn message
-	return newSheet where
-		coords = getCellCoords input
-		ok = verifyRowOrColumn coords
-		newSheet = if ok
-			then addCells sheet coords
-			else sheet
-		message = if ok
-			then "Inserted correctly."
-			else "Incorrect add command."
+tryAddCells sheet input = 
+	if verifyColumnExpression input || verifyRowExpression input then
+		do
+			putStrLn message
+			return newSheet 
+	else 
+		do
+			putStrLn "Incorrect input."
+			return sheet 
+				where
+					coords = getCellCoords input
+					ok = verifyRowOrColumn coords
+					newSheet = if ok
+						then addCells sheet coords
+						else sheet
+					message = if ok
+						then "Inserted correctly."
+						else "Incorrect add command."
 
 -- Given a sheet, adds empty columns or rows, as chosen;
 -- if the sheet is empty, added columns/rows are 5-cells wide.
@@ -214,7 +221,7 @@ tryDeleteCells :: [[CellContent]] -> String -> IO [[CellContent]]
 tryDeleteCells [] _ = do
 	putStrLn "The sheet is empty, nothing to remove."
 	return []
-tryDeleteCells sheet input = 		
+tryDeleteCells sheet input = 
 	if verifyColumnExpression input || verifyRowExpression input then
 			(case coords of
 				(Column col) -> if col >= colCount 
@@ -224,13 +231,12 @@ tryDeleteCells sheet input =
 					else do
 						putStrLn "Column removed successfully."
 						return (deleteCells sheet coords)
-				(Row row) -> if row >= rowCount
-					then do
+				(Row row) -> if row >= rowCount then do
 						putStrLn "Row doesn't exist."
 						return sheet
-					else do
-						putStrLn "Row removed successfully."
-						return (deleteCells sheet coords)) 
+							else do
+								putStrLn "Row removed successfully."
+								return (deleteCells sheet coords)) 
 	else do
 		putStrLn "Incorrect input."
 		return sheet 
