@@ -83,14 +83,15 @@ display _ _ = putStrLn "Incorrect show arguments."
 getFirstRow :: (CellCoords, CellCoords) -> String
 getFirstRow ((Column col1), (Column col2)) = rowString where
 	elems = [[getCoordsString (Column col)] ++ [" " | x <- [1..(columnWidth - length (getCoordsString (Column col)))]] ++ [" | "]| col <- [col1..col2]]
-	rowString = "  | " ++ (take totalWidth (foldr (++) "" (foldr (++) [""] elems)))
+	rowString = "     | " ++ (take totalWidth (foldr (++) "" (foldr (++) [""] elems)))
 
 -- Given a sheet, single row, starting and ending column, returns a string with this row.
 getRow :: [[CellContent]] -> CellCoords -> CellCoords -> CellCoords -> String
 getRow sheet (Row row) (Column x1) (Column x2) = rowString where
 	elems = [getElemPart sheet columnWidth ((sheet !! col) !! row) ++ " | " | col <- [x1..x2]]
-	rowString = show (row+1) ++ " | " ++ (take totalWidth (foldr (++) "" elems))
-
+	rowString = beginningOfRow ++ show (row+1) ++  " | " ++   (take totalWidth (foldr (++) "" elems))
+	beginningOfRow = if row < 9 then "   "  else if row < 99 then "  " else " "
+	
 -- Given the contents of a cell returns a string truncated to chosen number of chars.
 getElemPart :: [[CellContent]] -> Int -> CellContent -> String
 getElemPart _ n EmptyCell = foldr (++) "" [" " | x <- [1..n]]
@@ -122,30 +123,32 @@ displayFullElem sheet (Cell (col, row)) = case ((sheet !! col) !! row) of
 -- Calculates value of a function, returns it with a Bool whether all 
 -- cells used for calculations were NumCells or EmptyCells
 calculateFunction :: [[CellContent]] -> CellContent -> (Bool, Double)
-calculateFunction sheet (FunctionCell (fun, Range (Cell(c1, r1), Cell(c2, r2)))) = do
-	if r1 == r2 
-		then (allOk, rowValue)
-		else (allOk && restOk, fullValue) where
-			allOk = allTrue [isNum ((sheet !! c) !! r1) | c <- [c1..c2]]
-			nums = [getNum ((sheet !! c) !! r1)| c <- [c1..c2]]
-			rowValue = case fun of
-				Sum -> foldr (+) 0.0 nums
-				Product -> foldr (*) 1.0 nums
-				Mean -> foldr (+) 0.0 nums
-			(restOk, restValue) = if fun /= Mean 
-				then calculateFunction sheet (FunctionCell (fun, Range (Cell(c1,r1+1), Cell(c2, r2))))
-				else calculateFunction sheet (FunctionCell (Sum, Range (Cell(c1,r1+1), Cell(c2, r2))))
-			fullValue = case fun of
-				Sum -> rowValue + restValue
-				Product -> rowValue * restValue
-				Mean -> (rowValue + restValue) / fromIntegral ((c2 - c1 + 1)*(r2 - r1 + 1))
-			isNum :: CellContent -> Bool
-			isNum (NumCell _) = True
-			isNum EmptyCell = True
-			isNum _ = False
-			getNum :: CellContent -> Double
-			getNum (NumCell num) = num
-			getNum _ = 0.0
+calculateFunction sheet (FunctionCell (fun, Range (Cell(c1, r1), Cell(c2, r2)))) 
+	| r1 > r2 = calculateFunction sheet (FunctionCell (fun, Range (Cell(c1, r2), Cell(c2, r1))))  
+	| c1 > c2 = calculateFunction sheet (FunctionCell (fun, Range (Cell(c2, r1), Cell(c1, r2))))  
+	| r1 == r2 = (allOk, rowValue)
+	| otherwise = (allOk && restOk, fullValue) 
+			where
+				allOk = allTrue [isNum ((sheet !! c) !! r1) | c <- [c1..c2]]
+				nums = [getNum ((sheet !! c) !! r1)| c <- [c1..c2]]
+				rowValue = case fun of
+					Sum -> foldr (+) 0.0 nums
+					Product -> foldr (*) 1.0 nums
+					Mean -> foldr (+) 0.0 nums
+				(restOk, restValue) = if fun /= Mean 
+					then calculateFunction sheet (FunctionCell (fun, Range (Cell(c1,r1+1), Cell(c2, r2))))
+					else calculateFunction sheet (FunctionCell (Sum, Range (Cell(c1,r1+1), Cell(c2, r2))))
+				fullValue = case fun of
+					Sum -> rowValue + restValue
+					Product -> rowValue * restValue
+					Mean -> (rowValue + restValue) / fromIntegral ((c2 - c1 + 1)*(r2 - r1 + 1))
+				isNum :: CellContent -> Bool
+				isNum (NumCell _) = True
+				isNum EmptyCell = True
+				isNum _ = False
+				getNum :: CellContent -> Double
+				getNum (NumCell num) = num
+				getNum _ = 0.0
 
 -- set command section
 -- Verifies arguments and executes set command
@@ -156,7 +159,7 @@ trySetValue sheet args = do
 		(coords, value) = splitOnce ' ' args
 		cellCoords = getCellCoords coords
 		cellContent = getCellContent value
-		ok = verifyCell cellCoords && cellContent /= EmptyCell
+		ok = verifyCell sheet cellCoords && cellContent /= EmptyCell
 		newSheet = if ok
 			then matrixReplaceAt sheet cellCoords cellContent
 			else sheet
@@ -170,7 +173,7 @@ tryClearValue sheet args = do
 	putStrLn message
 	return newSheet where
 		cellCoords = getCellCoords args
-		ok = verifyCell cellCoords
+		ok = verifyCell sheet cellCoords
 		newSheet = if ok
 			then matrixReplaceAt sheet cellCoords EmptyCell
 			else sheet
@@ -240,6 +243,7 @@ deleteCells sheet (Row row) = if head newSheet == []
 		newSheet = [removeAt (sheet !! col) row | col <- [0..(colCount-1)]]
 		colCount = length sheet
 
+-- Safaly call saveFile
 trySaveFile :: [[CellContent]] -> String -> IO [[CellContent]]
 trySaveFile sheet args =  do
 				result <- try (saveFile sheet args) :: IO (Either SomeException ([[CellContent]]) )
@@ -249,12 +253,14 @@ trySaveFile sheet args =  do
 									return sheet
 					Right val -> return val
 
+-- Saves sheet in provided location
 saveFile :: [[CellContent]] -> String -> IO [[CellContent]]
 saveFile sheet args = do 
 						encodeFile args sheet
 						putStrLn "File saved."
 						return sheet
 
+-- Safaly call openFile
 tryOpenFile :: [[CellContent]] -> String -> IO [[CellContent]]
 tryOpenFile sheet args =  do
 				result <- try (openFile sheet args) :: IO (Either SomeException ([[CellContent]]) )
@@ -264,6 +270,7 @@ tryOpenFile sheet args =  do
 									return sheet
 					Right val -> return val
 
+-- Opens sheet from provided location
 openFile :: [[CellContent]] -> String -> IO [[CellContent]]
 openFile sheet args = do 
 			openedSheet <- decodeFile args :: IO [[CellContent]]

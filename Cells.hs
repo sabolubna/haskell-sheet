@@ -87,9 +87,11 @@ matrixReplaceAt (col:cols) (Cell (colNum, rowNum)) elem = (col:(matrixReplaceAt 
 matrixReplaceAt matrix _ _ = matrix
 
 -- Checks whether given CellCoords is a Cell
-verifyCell :: CellCoords -> Bool
-verifyCell (Cell (_, _)) = True
-verifyCell _ = False
+verifyCell :: [[CellContent]] -> CellCoords -> Bool
+verifyCell sheet (Cell (c, r)) = c < tc && r < tr where
+								tc = totalNumberOfColumn sheet
+								tr = totalNumberOfRows sheet
+verifyCell _ _ = False
 
 -- Checks whether given CellCoords is a Row or Column
 verifyRowOrColumn :: CellCoords -> Bool
@@ -111,10 +113,16 @@ verifyProductExpression content = content =~ "^PRODUCT\\([A-Z][1-9][0-9]*\\:[A-Z
 
 -- Chekcs if a String is expression of range.
 verifyCellRangeExpression :: String -> Bool 
-verifyCellRangeExpression input = input =~ "^[A-Z][1-9][0-9]*\\:[A-Z][1-9][0-9]*$" || input =~ "^[A-Z]$" || input =~ "^[1-9][0-9]*" || input =~ "^[A-Z]\\:[A-Z]$"
+verifyCellRangeExpression input =  input =~ "^[A-Z]+[1-9][0-9]*\\:[A-Z]+[1-9][0-9]*$" || input =~ "^[A-Z]+$" || input =~ "^[1-9][0-9]*"  
+									   || input =~ "^[A-Z]+\\:[A-Z]+$" || input =~ "^[A-Z]+[1-9][0-9]*$"
 
 -- Given a FunctionCell returns a corresponding string
 functionToString :: CellContent -> String
 functionToString (FunctionCell (f, Range (coord1, coord2))) =
 	show f ++ "(" ++ getCoordsString coord1 ++ ":" ++ getCoordsString coord2 ++ ")"
-	
+
+totalNumberOfColumn :: [[CellContent]] -> Int
+totalNumberOfColumn x = length x
+
+totalNumberOfRows :: [[CellContent]] -> Int
+totalNumberOfRows x = length (head x)

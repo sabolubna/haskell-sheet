@@ -7,12 +7,12 @@ import Cells
 
 askForCommand :: [[CellContent]] -> String -> IO ()
 askForCommand sheet [] = do
-	putStrLn ""
-	putStrLn "Type a command: (\"help\" for instructions)"
+	--putStrLn ""
+	--putStrLn "Type a command: (\"help\" for instructions)"
 	putStr ">>>>> "
 	hFlush stdout
 	command <- getLine
-	putStrLn ""
+	--putStrLn ""
 	askForCommand sheet command
 
 askForCommand _ "quit" =
@@ -24,5 +24,7 @@ askForCommand sheet command = do
 
 
 main = do
+	putStrLn "Hello"
+	putStrLn "Type \"help\" for available commands"
 	let sheet = [[EmptyCell | y <- [1..5]] | x <- [1..5]]
 	askForCommand sheet []
