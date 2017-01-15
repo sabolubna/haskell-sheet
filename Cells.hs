@@ -1,4 +1,6 @@
 -- all Cell related functions
+
+-- Line below allows for autofilling Binary instances - needed to save/open file.
 {-# LANGUAGE DeriveGeneric #-}
 
 module Cells where
@@ -9,13 +11,18 @@ import Data.Char
 import Control.Exception 
 import Data.Binary
 import GHC.Generics (Generic)
+import Text.Regex.Posix
 
-data CellCoords = EmptyCoords | Column (Int) | Row (Int) | Cell (Int, Int) deriving (Show, Eq)
-data RangeCoords = Range (CellCoords, CellCoords) deriving (Show, Eq)
-
-data Function = Sum | Product | Mean deriving (Show, Eq)
-
+data CellCoords = EmptyCoords | Column (Int) | Row (Int) | Cell (Int, Int) deriving (Show, Eq, Generic)
+data RangeCoords = Range (CellCoords, CellCoords) deriving (Show, Eq, Generic)
+data Function = Sum | Product | Mean deriving (Show, Eq, Generic)
 data CellContent = EmptyCell | NumCell (Double) | TextCell (String) | FunctionCell (Function, RangeCoords) deriving (Show, Eq, Generic)
+
+-- Instances below will be automatically filled out by GHC
+instance Binary CellCoords
+instance Binary RangeCoords
+instance Binary Function
+instance Binary CellContent
 
 -- Given a string, e.g. "F5" returns a corresponding CellCoords;
 -- can be coordinates of a cell or only a column/row
@@ -90,15 +97,15 @@ verifyRowOrColumn _ = False
 
 -- Checks if a String is expression of sum.
 verifySumExpression :: String -> Bool
-verifySumExpression content = (take 4 content) == "SUM("  && (last content) == ')' -- needs more checks - easy to crash app.
+verifySumExpression content = content =~ "^SUM\\([A-Z][0-9]+\\:[A-Z][0-9]+\\)$" :: Bool
 
 -- Checks if a String is expression of mean.
 verifyMeanExpression :: String -> Bool
-verifyMeanExpression content = (take 5 content) == "MEAN("  && (last content) == ')' --  needs more checks - easy to crash app.
+verifyMeanExpression content = content =~ "^MEAN\\([A-Z][0-9]+\\:[A-Z][0-9]+\\)$" :: Bool
 
 -- Checks if a String is expression of sum.
 verifyProductExpression :: String -> Bool
-verifyProductExpression content = (take 8 content) == "PRODUCT("  && (last content) == ')' --  needs more checks - easy to crash app.
+verifyProductExpression content = content =~ "^PRODUCT\\([A-Z][0-9]+\\:[A-Z][0-9]+\\)$" :: Bool
 
 -- Given a FunctionCell returns a corresponding string
 functionToString :: CellContent -> String

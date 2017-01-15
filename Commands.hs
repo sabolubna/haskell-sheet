@@ -4,6 +4,7 @@ module Commands where
 import Help
 import Cells
 import Utils
+import Data.Binary
 
 columnWidth = 10
 totalWidth = 70
@@ -19,8 +20,20 @@ tryExecuteCommand sheet fullCommand = newSheet where
 			printHelpMsg [args]
 			return sheet
 		"set" -> trySetValue sheet args
+		"clear" -> tryClearValue sheet args
 		"add" -> tryAddCells sheet args
 		"delete" -> tryDeleteCells sheet args
+		"save" -> do
+			encodeFile args sheet
+			putStrLn "File saved."
+			return sheet
+		"open" -> do
+			openedSheet <- decodeFile args :: IO [[CellContent]]
+			putStrLn "File opnened."
+			return openedSheet
+		"new" -> do 
+			let reallyNewSheet = [[EmptyCell | y <- [1..5]] | x <- [1..5]]
+			return reallyNewSheet
 		_ -> do
 			putStrLn ("There is no " ++ command ++ " command.")
 			return sheet)
@@ -155,6 +168,21 @@ trySetValue sheet args = do
 			then "OK."
 			else "Incorrect set command."
 
+
+tryClearValue :: [[CellContent]] -> String -> IO [[CellContent]]
+tryClearValue sheet args = do
+	putStrLn message
+	return newSheet where
+		cellCoords = getCellCoords args
+		ok = verifyCell cellCoords
+		newSheet = if ok
+			then matrixReplaceAt sheet cellCoords EmptyCell
+			else sheet
+		message = if ok 
+			then "OK."
+			else "Incorrect set command."
+
+
 -- add command section
 -- Verifies arguments and executes add command
 tryAddCells :: [[CellContent]] -> String -> IO [[CellContent]]
@@ -215,3 +243,6 @@ deleteCells sheet (Row row) = if head newSheet == []
 	else newSheet where 
 		newSheet = [removeAt (sheet !! col) row | col <- [0..(colCount-1)]]
 		colCount = length sheet
+		
+
+						  
