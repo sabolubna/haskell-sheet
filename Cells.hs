@@ -1,16 +1,21 @@
 -- all Cell related functions
+{-# LANGUAGE DeriveGeneric #-}
+
 module Cells where
 
 import Parser
 import Utils
 import Data.Char
+import Control.Exception 
+import Data.Binary
+import GHC.Generics (Generic)
 
 data CellCoords = EmptyCoords | Column (Int) | Row (Int) | Cell (Int, Int) deriving (Show, Eq)
 data RangeCoords = Range (CellCoords, CellCoords) deriving (Show, Eq)
 
 data Function = Sum | Product | Mean deriving (Show, Eq)
 
-data CellContent = EmptyCell | NumCell (Double) | TextCell (String) | FunctionCell (Function, RangeCoords) deriving (Show, Eq)
+data CellContent = EmptyCell | NumCell (Double) | TextCell (String) | FunctionCell (Function, RangeCoords) deriving (Show, Eq, Generic)
 
 -- Given a string, e.g. "F5" returns a corresponding CellCoords;
 -- can be coordinates of a cell or only a column/row
@@ -59,6 +64,10 @@ getCellContent :: String -> CellContent
 getCellContent "" = EmptyCell
 getCellContent content
   | (head content) ==  '"' && (last content) == '"' = (TextCell (drop 1 (init content)))
+  | (reads content :: [(Double, String)]) /= [] && (snd (head (reads content :: [(Double, String)]))) == "" = NumCell (fst (head (reads content :: [(Double, String)])))
+  | verifySumExpression content = FunctionCell(Sum, Range(getCellRange (drop 4 (init content))))
+  | verifyMeanExpression content = FunctionCell(Mean, Range(getCellRange (drop 5 (init content))))
+  | verifyProductExpression content = FunctionCell(Product, Range(getCellRange (drop 8 (init content))))
   | otherwise = EmptyCell
 
 -- Given a list of lists, CellCoords and new element, puts it in the 
@@ -79,7 +88,20 @@ verifyRowOrColumn (Column _) = True
 verifyRowOrColumn (Row _) = True
 verifyRowOrColumn _ = False
 
+-- Checks if a String is expression of sum.
+verifySumExpression :: String -> Bool
+verifySumExpression content = (take 4 content) == "SUM("  && (last content) == ')' -- needs more checks - easy to crash app.
+
+-- Checks if a String is expression of mean.
+verifyMeanExpression :: String -> Bool
+verifyMeanExpression content = (take 5 content) == "MEAN("  && (last content) == ')' --  needs more checks - easy to crash app.
+
+-- Checks if a String is expression of sum.
+verifyProductExpression :: String -> Bool
+verifyProductExpression content = (take 8 content) == "PRODUCT("  && (last content) == ')' --  needs more checks - easy to crash app.
+
 -- Given a FunctionCell returns a corresponding string
 functionToString :: CellContent -> String
 functionToString (FunctionCell (f, Range (coord1, coord2))) =
 	show f ++ "(" ++ getCoordsString coord1 ++ ":" ++ getCoordsString coord2 ++ ")"
+	
