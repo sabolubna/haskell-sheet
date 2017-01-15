@@ -79,26 +79,64 @@ getFirstRow ((Column col1), (Column col2)) = rowString where
 -- Given a sheet, single row, starting and ending column, returns a string with this row.
 getRow :: [[CellContent]] -> CellCoords -> CellCoords -> CellCoords -> String
 getRow sheet (Row row) (Column x1) (Column x2) = rowString where
-	elems = [getElemPart columnWidth ((sheet !! col) !! row) ++ " | " | col <- [x1..x2]]
+	elems = [getElemPart sheet columnWidth ((sheet !! col) !! row) ++ " | " | col <- [x1..x2]]
 	rowString = show (row+1) ++ " | " ++ (take totalWidth (foldr (++) "" elems))
 
 -- Given the contents of a cell returns a string truncated to chosen number of chars.
-getElemPart :: Int -> CellContent -> String
-getElemPart n EmptyCell = foldr (++) "" [" " | x <- [1..n]]
-getElemPart n (TextCell text) = if length text <= n 
+getElemPart :: [[CellContent]] -> Int -> CellContent -> String
+getElemPart _ n EmptyCell = foldr (++) "" [" " | x <- [1..n]]
+getElemPart _ n (TextCell text) = if length text <= n 
 	then text ++ (foldr (++) "" [" " | x <- [1..(n - length text)]])
 	else (take (n-3) text) ++ "..."
-getElemPart n (NumCell num) =  if length text <= n 
+getElemPart _ n (NumCell num) =  if length text <= n 
 	then text ++ (foldr (++) "" [" " | x <- [1..(n - length text)]])
 	else (take (n-3) text) ++ "..." where
 		text = (show num)
+getElemPart sheet n (FunctionCell (fun, range)) = if length text <= n 
+	then text ++ (foldr (++) "" [" " | x <- [1..(n - length text)]])
+	else (take (n-3) text) ++ "..." where
+		(success, value) = calculateFunction sheet (FunctionCell (fun, range))
+		text = if success then show value else "#####"
 
 -- Displays full content of the cell.
 displayFullElem :: [[CellContent]] -> CellCoords -> IO ()
 displayFullElem sheet (Cell (col, row)) = case ((sheet !! col) !! row) of
 	(TextCell text) -> putStrLn ("\"" ++ text ++ "\"")
 	(NumCell num) -> putStrLn (show num)
+	(FunctionCell (fun, range)) -> do
+		putStrLn (functionToString (FunctionCell (fun, range)))
+		putStrLn result where
+			(success, value) = calculateFunction sheet (FunctionCell (fun, range))
+			result = if success then show value else "#####"
 	EmptyCell -> putStrLn "This cell is empty."
+
+-- Calculates value of a function, returns it with a Bool whether all 
+-- cells used for calculations were NumCells or EmptyCells
+calculateFunction :: [[CellContent]] -> CellContent -> (Bool, Double)
+calculateFunction sheet (FunctionCell (fun, Range (Cell(c1, r1), Cell(c2, r2)))) = do
+	if r1 == r2 
+		then (allOk, rowValue)
+		else (allOk && restOk, fullValue) where
+			allOk = allTrue [isNum ((sheet !! c) !! r1) | c <- [c1..c2]]
+			nums = [getNum ((sheet !! c) !! r1)| c <- [c1..c2]]
+			rowValue = case fun of
+				Sum -> foldr (+) 0.0 nums
+				Product -> foldr (*) 1.0 nums
+				Mean -> foldr (+) 0.0 nums
+			(restOk, restValue) = if fun /= Mean 
+				then calculateFunction sheet (FunctionCell (fun, Range (Cell(c1,r1+1), Cell(c2, r2))))
+				else calculateFunction sheet (FunctionCell (Sum, Range (Cell(c1,r1+1), Cell(c2, r2))))
+			fullValue = case fun of
+				Sum -> rowValue + restValue
+				Product -> rowValue * restValue
+				Mean -> (rowValue + restValue) / fromIntegral ((c2 - c1 + 1)*(r2 - r1 + 1))
+			isNum :: CellContent -> Bool
+			isNum (NumCell _) = True
+			isNum EmptyCell = True
+			isNum _ = False
+			getNum :: CellContent -> Double
+			getNum (NumCell num) = num
+			getNum _ = 0.0
 
 -- set command section
 -- Verifies arguments and executes set command

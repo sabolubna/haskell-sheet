@@ -10,7 +10,7 @@ data RangeCoords = Range (CellCoords, CellCoords) deriving (Show, Eq)
 
 data Function = Sum | Product | Mean deriving (Show, Eq)
 
-data CellContent = EmptyCell | NumCell (Double) | TextCell (String) | FunctionCell (Function, [RangeCoords]) deriving (Show, Eq)
+data CellContent = EmptyCell | NumCell (Double) | TextCell (String) | FunctionCell (Function, RangeCoords) deriving (Show, Eq)
 
 -- Given a string, e.g. "F5" returns a corresponding CellCoords;
 -- can be coordinates of a cell or only a column/row
@@ -78,3 +78,8 @@ verifyRowOrColumn :: CellCoords -> Bool
 verifyRowOrColumn (Column _) = True
 verifyRowOrColumn (Row _) = True
 verifyRowOrColumn _ = False
+
+-- Given a FunctionCell returns a corresponding string
+functionToString :: CellContent -> String
+functionToString (FunctionCell (f, Range (coord1, coord2))) =
+	show f ++ "(" ++ getCoordsString coord1 ++ ":" ++ getCoordsString coord2 ++ ")"
