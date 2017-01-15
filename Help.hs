@@ -33,8 +33,9 @@ printHelpMsg [command] = case command of
 		putStrLn "save X - saves sheet in file X, e.g. save f.sht"
 	"add" -> do
 		putStrLn "add X - adds empty column or row, e.g. add F, add 7"
-		putStrLn "  if X is bigger that sheet's current size, multiple"
-		putStrLn "  columns/rows are added"
+		putStrLn "  NOTE: if X is bigger that sheet's current size,"
+		putStrLn "        multiple columns/rows are added"
+		putStrLn "  NOTE: if the sheet is empty, adds columns/rows of length 5"
 	"clear" -> do 
 		putStrLn "clear XX - clears content of XX cell, e.g. clear A1"
 	"delete" -> do
